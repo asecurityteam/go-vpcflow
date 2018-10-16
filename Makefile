@@ -11,7 +11,23 @@ test:
 	go test -v -cover -coverpkg=./... -coverprofile=.coverage/unit.cover.out ./...
 	gocov convert .coverage/unit.cover.out | gocov-xml > .coverage/unit.xml
 
+integration: ;
+
 coverage:
 	mkdir -p .coverage
 	gocovmerge .coverage/*.cover.out > .coverage/combined.cover.out
 	gocov convert .coverage/combined.cover.out | gocov-xml > .coverage/combined.xml
+
+	TAG := $(shell git rev-parse --short HEAD)
+
+doc: ;
+
+build-dev: ;
+
+build: ;
+
+run: ;
+
+deploy-dev: ;
+
+deploy: ;

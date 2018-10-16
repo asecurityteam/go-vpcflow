@@ -6,33 +6,33 @@ pipelines:
         script:
           # Prepare the environment
           - echo -e "machine bitbucket.org\nlogin ${BITBUCKET_USERNAME}\npassword ${BITBUCKET_PASSWORD}\n" > ~/.netrc && chmod 600 ~/.netrc
-          - export PATH=/go/bin:$PATH GOPATH=/go SRCDIR=/go/src/bitbucket.org/atlassian/go-vpc
+          - export PATH=/go/bin:$PATH GOPATH=/go SRCDIR=/go/src/bitbucket.org/atlassian/go-vpcflow
           - mkdir -p /go/bin /go/src/bitbucket.org/atlassian && ln -s $BITBUCKET_CLONE_DIR $SRCDIR && cd $SRCDIR
 
           # Install dependencies
           - curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-          - dep status
-          - dep ensure
+          - make dep
         artifacts:
           - vendor/**
     - step:
-        name: Formatting
-        script:
-            - export SRCDIR=/go/src/bitbucket.org/atlassian/go-vpc
-            - mkdir -p /go/src/bitbucket.org/atlassian && ln -s $BITBUCKET_CLONE_DIR $SRCDIR && cd $SRCDIR
-            - go get -u golang.org/x/tools/cmd/goimports
-            - if [[ "$(goimports -d $(find . -type f -name '*.go' -not -path "./vendor/*"))" != "" ]]; then echo "$(goimports -d $(find . -type f -name '*.go' -not -path "./vendor/*"))" && exit 1; fi
-    - step:
         name: Static Analysis
         script:
-          - export SRCDIR=/go/src/bitbucket.org/atlassian/go-vpc
+          - export SRCDIR=/go/src/bitbucket.org/atlassian/go-vpcflow
           - mkdir -p /go/src/bitbucket.org/atlassian && ln -s $BITBUCKET_CLONE_DIR $SRCDIR && cd $SRCDIR
           - curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | bash -s -- -b /go/bin v1.10.2
-          - golangci-lint run
+          - make lint
     - step:
         name: Build and test
         script:
           # Prepare the environment
-          - export SRCDIR=/go/src/bitbucket.org/atlassian/go-vpc
+          - export SRCDIR=/go/src/bitbucket.org/atlassian/go-vpcflow
           - mkdir -p /go/src/bitbucket.org/atlassian && ln -s $BITBUCKET_CLONE_DIR $SRCDIR && cd $SRCDIR
-          - go test -cover -coverpkg=./... -race -v ./...
+          - go get github.com/axw/gocov/...
+          - go install github.com/axw/gocov/gocov
+          - go get github.com/AlekSi/gocov-xml
+          - go install github.com/AlekSi/gocov-xml
+          - go get github.com/wadey/gocovmerge
+          - go install github.com/wadey/gocovmerge
+          - make test
+          - make coverage
+

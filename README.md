@@ -1,18 +1,18 @@
 # go-vpc #
 
-**A library for consuming AWS VPC logs**
+**A library for consuming AWS VPC Flow Logs**
 
 ## Overview ##
 
-AWS VPC logs are a data source by which a team can detect anomalies in connection patterns, use of non-standard ports, or even view the interconnections of systems. To assist in the consumption and analysis of these logs, go-vpc provides the following feature set:
+AWS Flow Logs are a data source by which a team can detect anomalies in connection patterns, use of non-standard ports, or even view the interconnections of systems. To assist in the consumption and analysis of these logs, go-vpc provides the following feature set:
 
-* extract VPC logs from an S3 bucket
+* extract flow logs from an S3 bucket
 * filter out logs of interest based on log metadata
 * perform compactions on the data resulting in a digest for a particular network interface
 
 ## Usage ##
 
-In order to get started, your AWS account should be configured to [publish VPC flow logs to S3](https://docs.aws.amazon.com/vpc/latest/userguide/flow-logs-s3.html)
+In order to get started, your AWS account should be configured to [publish flow logs to S3](https://docs.aws.amazon.com/vpc/latest/userguide/flow-logs-s3.html)
 
 ## Contributing ##
 

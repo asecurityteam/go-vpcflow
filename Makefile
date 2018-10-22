@@ -18,8 +18,6 @@ coverage:
 	gocovmerge .coverage/*.cover.out > .coverage/combined.cover.out
 	gocov convert .coverage/combined.cover.out | gocov-xml > .coverage/combined.xml
 
-	TAG := $(shell git rev-parse --short HEAD)
-
 doc: ;
 
 build-dev: ;

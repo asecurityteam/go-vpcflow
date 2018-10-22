@@ -22,10 +22,17 @@ type Semaphore struct {
 	C chan interface{}
 }
 
+// Lock attempts to acquire the semaphore. If the limit has not
+// yet been reached then the call returns immediately. If the
+// limit is reached then this call blocks until the number of
+// concurrent lock holders crosses back under the limit.
 func (c Semaphore) Lock() {
 	c.C <- nil
 }
 
+// Unlock indicates that the caller no longer needs space in
+// the semaphore. This must be called at the end of a critical
+// section just like any other Locker implementation.
 func (c Semaphore) Unlock() {
 	<-c.C
 }
@@ -69,7 +76,7 @@ type PrefetchFileManager struct {
 	// limit the prefetching will stop until the buffer is drained
 	// enough to contain the next file.
 	//
-	// On exception to this is when the buffer is empty and the next
+	// One exception to this is when the buffer is empty and the next
 	// file is still larger, on its own, than the max bytes. In this
 	// case, the prefetcher will still download the file but will then
 	// wait for the buffer to drain before downloading the next file.
@@ -82,11 +89,9 @@ type PrefetchFileManager struct {
 	// size or be blocking.
 	Ready chan io.Reader
 
-	wg         sync.WaitGroup
-	prefetched int64
-	errs       chan error
-	// err        error
-	// errLock    sync.Mutex
+	wg          sync.WaitGroup
+	prefetched  int64
+	errs        chan error
 	sizes       sync.Map
 	downloader  *s3manager.Downloader
 	initialized int32
@@ -103,11 +108,6 @@ func (f *PrefetchFileManager) Get() (io.Reader, error) {
 	default:
 	}
 	select {
-	case r := <-f.Ready:
-		return r, nil
-	default:
-	}
-	select {
 	case e := <-f.errs:
 		return nil, e
 	case r := <-f.Ready:
@@ -115,6 +115,7 @@ func (f *PrefetchFileManager) Get() (io.Reader, error) {
 	}
 }
 
+// Put returns a file to the manager for cleanup.
 func (f *PrefetchFileManager) Put(r io.Reader) {
 	var size, _ = f.sizes.Load(r)
 	f.sizes.Delete(r)
@@ -269,6 +270,8 @@ func (r *BucketIteratorReader) Read(b []byte) (int, error) {
 	}
 }
 
+// Close the reader and the underlying BucketIterator.
+// The reader may not be used again after calling Close().
 func (r *BucketIteratorReader) Close() error {
 	// Set exhausted to ensure future reads return
 	// io.EOF.

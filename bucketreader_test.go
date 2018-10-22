@@ -123,7 +123,7 @@ func TestBucketIteratorReaderAutoFetchesNewFilesOnEOF(t *testing.T) {
 	// The scenario here is that the file manager returns
 	// a valid file that we try to read from but that
 	// file gives us an io.EOF with no bytes read. The
-	// correct behaviour is to then fetch the next file
+	// correct behavior is to then fetch the next file
 	// and attempt to read from it instead. To terminate
 	// the scenario we return the stop signal for the
 	// second file.
@@ -167,7 +167,7 @@ func TestBucketIteratorReaderReturnsIfEOFAndNonEmptyRead(t *testing.T) {
 	manager.EXPECT().Put(reader)
 
 	// The expected outcome from this scenario is a non-zero
-	// "n" value and a nil error. This behaviour was chosen,
+	// "n" value and a nil error. This behavior was chosen,
 	// over returning both "n" and io.EOF together, because
 	// there may still be additional content to read from
 	// other underlying files.

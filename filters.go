@@ -16,6 +16,8 @@ type LogFileFilter interface {
 // filter or true if all filters pass.
 type MultiLogFileFilter []LogFileFilter
 
+// FilterLogFile executes all enclosed filters until one of them
+// returns false.
 func (f MultiLogFileFilter) FilterLogFile(lf LogFile) bool {
 	for _, filter := range f {
 		if !filter.FilterLogFile(lf) {
@@ -56,6 +58,8 @@ type BucketFilter struct {
 	BucketIterator
 }
 
+// Iterate will consume from the wrapped iterator until
+// an element is found that passes the filter.
 func (it *BucketFilter) Iterate() bool {
 	var more = it.BucketIterator.Iterate()
 	var curr = it.BucketIterator.Current()

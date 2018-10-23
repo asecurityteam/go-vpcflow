@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"strconv"
 	"strings"
 	"time"
@@ -44,35 +45,36 @@ type variableData struct {
 	packets int64
 }
 
-// Digest is responsible for compacting multiple VPC flow log lines into fewer, summarized lines.
-type Digest struct {
-	reader   *bufio.Reader
-	digested map[string]variableData
-	start    time.Time
-	end      time.Time
+// Digester interface digests input data, and outputs an io.ReaderCloser
+// from which the compacted data can be read
+type Digester interface {
+	Digest() (io.ReadCloser, error)
 }
 
-// NewDigest creates and returns a new Digest of the given io.Reader contents
-func NewDigest(r io.Reader) (*Digest, error) {
-	d := Digest{
-		reader:   bufio.NewReader(r),
-		digested: make(map[string]variableData),
-	}
-	err := d.digest()
-	if err != nil {
-		return nil, err
-	}
-	return &d, nil
+// ReaderDigester is responsible for compacting multiple VPC flow log lines into fewer, summarized lines.
+type ReaderDigester struct {
+	Reader io.ReadCloser
 }
 
-func (d *Digest) digest() error {
+// Digest reads from the given io.Reader, and compacts multiple VPC flow log lines, producing a digest
+// of the material made available via the resulting io.ReadCloser.  A digest is creating by squashing
+// "stable" values together, and aggregating more volatile values. Stable values would be the srcaddr,
+// dstaddr, dstport, protocol, and action values. These are not as likely to change with great frequency
+// as the more volatile values such as srcport, start, end, log-status, bytes, and packets. For the most
+// part, these volatile values will change with every entry even when the stable values are exactly the
+// same.
+func (d *ReaderDigester) Digest() (io.ReadCloser, error) {
+	defer d.Reader.Close()
+	reader := bufio.NewReader(d.Reader)
+	digest := make(map[string]variableData)
+	var start, end time.Time
 	for {
-		line, err := d.reader.ReadString('\n')
+		line, err := reader.ReadString('\n')
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
-			return err
+			return nil, err
 		}
 		attrs := strings.Split(line, " ")
 		logStatus := strings.ToLower(attrs[idxLogStatus])
@@ -81,19 +83,19 @@ func (d *Digest) digest() error {
 		}
 		dstPort, err := strconv.Atoi(attrs[idxDstPort])
 		if err != nil {
-			return err
+			return nil, err
 		}
 		srcPort, err := strconv.Atoi(attrs[idxSrcPort])
 		if err != nil {
-			return err
+			return nil, err
 		}
 		bytes, err := strconv.ParseInt(attrs[idxBytes], 10, 64)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		packets, err := strconv.ParseInt(attrs[idxPackets], 10, 64)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		// We don't care about the ephemeral port; we only care about the meaningful port.
@@ -109,45 +111,41 @@ func (d *Digest) digest() error {
 		}
 
 		key := keyFromAttrs(attrs)
-		if _, ok := d.digested[key]; !ok {
-			d.digested[key] = variableData{}
+		if _, ok := digest[key]; !ok {
+			digest[key] = variableData{}
 		}
-		vd := d.digested[key]
+		vd := digest[key]
 		vd.bytes = vd.bytes + bytes
 		vd.packets = vd.packets + packets
-		d.digested[key] = vd
+		digest[key] = vd
 
-		if err := d.updateTimeBounds(attrs); err != nil {
-			return err
+		s, e, err := timeBoundsFromAttrs(attrs)
+		if err != nil {
+			return nil, err
+		}
+		if s.Before(start) {
+			start = s
+		}
+		if e.After(end) {
+			end = e
 		}
 	}
-	return nil
+	return readerFromDigest(digest, start, end)
 }
 
-// for a given digest, we want to find the earliest time and the latest time, and set those
-// as our start and end respectively
-func (d *Digest) updateTimeBounds(attrs []string) error {
+// for a given log line, extract the unix time stamp, and return start, end respectively
+func timeBoundsFromAttrs(attrs []string) (time.Time, time.Time, error) {
 	startString := attrs[idxStart]
 	endString := attrs[idxEnd]
 	startSec, err := strconv.ParseInt(startString, 10, 64)
 	if err != nil {
-		return err
+		return time.Time{}, time.Time{}, err
 	}
 	endSec, err := strconv.ParseInt(endString, 10, 64)
 	if err != nil {
-		return err
+		return time.Time{}, time.Time{}, err
 	}
-	start := time.Unix(startSec, 0)
-	end := time.Unix(endSec, 0)
-
-	if start.Before(d.start) {
-		d.start = start
-	}
-	if end.After(d.end) {
-		d.end = end
-	}
-
-	return nil
+	return time.Unix(startSec, 0), time.Unix(endSec, 0), nil
 }
 
 // key gets generated from stable values which are not likely to change as much
@@ -164,15 +162,9 @@ func keyFromAttrs(attrs []string) string {
 	return key
 }
 
-// DigestReader converts the digested VPC flow logs into a io.ReaderCloser
-type DigestReader struct {
-	Digest      Digest
-	buff        bytes.Buffer
-	initialized bool
-}
-
-func (r *DigestReader) init() error {
-	for key, vd := range r.Digest.digested {
+func readerFromDigest(digest map[string]variableData, start, end time.Time) (io.ReadCloser, error) {
+	var buff bytes.Buffer
+	for key, vd := range digest {
 		attrs := strings.Split(key, " ")
 		var line, prefix string
 		for idx, attr := range attrs {
@@ -183,9 +175,9 @@ func (r *DigestReader) init() error {
 			case idxPackets:
 				val = fmt.Sprintf("%d", vd.packets)
 			case idxStart:
-				val = fmt.Sprintf("%d", r.Digest.start.Unix())
+				val = fmt.Sprintf("%d", start.Unix())
 			case idxEnd:
-				val = fmt.Sprintf("%d", r.Digest.end.Unix())
+				val = fmt.Sprintf("%d", end.Unix())
 			default:
 				val = attr
 			}
@@ -193,22 +185,10 @@ func (r *DigestReader) init() error {
 			prefix = " "
 		}
 		line = line + "\n"
-		_, err := r.buff.WriteString(line)
+		_, err := buff.WriteString(line)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
-	return nil
-}
-
-// Read reads from the digested VPC flow logs
-func (r *DigestReader) Read(b []byte) (int, error) {
-	if !r.initialized {
-		if err := r.init(); err != nil {
-			return 0, err
-		}
-		r.initialized = true
-	}
-
-	return r.buff.Read(b)
+	return ioutil.NopCloser(&buff), nil
 }

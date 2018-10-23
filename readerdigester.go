@@ -70,14 +70,14 @@ func (d *ReaderDigester) Digest() (io.ReadCloser, error) {
 	var start, end time.Time
 	for {
 		line, err := reader.ReadString('\n')
-		if err == io.EOF {
+		if err == io.EOF && len(line) < 1 {
 			break
 		}
-		if err != nil {
+		if err != nil && err != io.EOF {
 			return nil, err
 		}
 		attrs := strings.Split(line, " ")
-		logStatus := strings.ToLower(attrs[idxLogStatus])
+		logStatus := strings.ToLower(strings.TrimSpace(attrs[idxLogStatus]))
 		if attrs[idxVersion] != "2" || logStatus != "ok" {
 			continue
 		}
@@ -123,10 +123,10 @@ func (d *ReaderDigester) Digest() (io.ReadCloser, error) {
 		if err != nil {
 			return nil, err
 		}
-		if s.Before(start) {
+		if s.Before(start) || start.IsZero() {
 			start = s
 		}
-		if e.After(end) {
+		if e.After(end) || end.IsZero() {
 			end = e
 		}
 	}
@@ -152,8 +152,8 @@ func timeBoundsFromAttrs(attrs []string) (time.Time, time.Time, error) {
 func keyFromAttrs(attrs []string) string {
 	var key, prefix string
 	for idx, attr := range attrs {
-		val := attr
-		if keyFields[idx] {
+		val := strings.TrimSpace(attr)
+		if !keyFields[idx] {
 			val = "-"
 		}
 		key = key + prefix + val
@@ -178,6 +178,8 @@ func readerFromDigest(digest map[string]variableData, start, end time.Time) (io.
 				val = fmt.Sprintf("%d", start.Unix())
 			case idxEnd:
 				val = fmt.Sprintf("%d", end.Unix())
+			case idxSrcPort:
+				val = "0" // always set src port to 0. see earlier comment
 			default:
 				val = attr
 			}

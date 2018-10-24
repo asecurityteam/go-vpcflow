@@ -30,6 +30,7 @@ const (
 	idxLogStatus
 )
 
+// set of keyed fields
 var keyFields = map[int]bool{
 	idxVersion:     true,
 	idxAccountID:   true,

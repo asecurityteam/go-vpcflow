@@ -11,21 +11,23 @@ import (
 	"time"
 )
 
+// Each log ling is space delimited. When tokenized, the attributes can be accessed by the below
+// index values
 const (
-	idxVersion     = 0
-	idxAccountID   = 1
-	idxInterfaceID = 2
-	idxSrcAddr     = 3
-	idxDstAddr     = 4
-	idxSrcPort     = 5
-	idxDstPort     = 6
-	idxProtocol    = 7
-	idxPackets     = 8
-	idxBytes       = 9
-	idxStart       = 10
-	idxEnd         = 11
-	idxAction      = 12
-	idxLogStatus   = 13
+	idxVersion = iota
+	idxAccountID
+	idxInterfaceID
+	idxSrcAddr
+	idxDstAddr
+	idxSrcPort
+	idxDstPort
+	idxProtocol
+	idxPackets
+	idxBytes
+	idxStart
+	idxEnd
+	idxAction
+	idxLogStatus
 )
 
 var keyFields = map[int]bool{
@@ -57,7 +59,7 @@ type ReaderDigester struct {
 }
 
 // Digest reads from the given io.Reader, and compacts multiple VPC flow log lines, producing a digest
-// of the material made available via the resulting io.ReadCloser.  A digest is creating by squashing
+// of the material made available via the resulting io.ReadCloser.  A digest is created by squashing
 // "stable" values together, and aggregating more volatile values. Stable values would be the srcaddr,
 // dstaddr, dstport, protocol, and action values. These are not as likely to change with great frequency
 // as the more volatile values such as srcport, start, end, log-status, bytes, and packets. For the most

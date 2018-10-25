@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-// Each log ling is space delimited. When tokenized, the attributes can be accessed by the below
+// Each log line is space delimited. When tokenized, the attributes can be accessed by the below
 // index values
 const (
 	idxVersion = iota

@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -115,4 +116,66 @@ func TestDigestBadData(t *testing.T) {
 			assert.NotNil(t, err)
 		})
 	}
+}
+
+func TestTimeBoundsFromAttrs(t *testing.T) {
+	tc := []struct {
+		Name          string
+		Start         string
+		End           string
+		ExpectedError bool
+	}{
+		{
+			Name:  "success",
+			Start: "1418530010",
+			End:   "1418530080",
+		},
+		{
+			Name:          "bad-start",
+			Start:         "not valid unix ts",
+			End:           "1418530080",
+			ExpectedError: true,
+		},
+		{
+			Name:          "bad-end",
+			Start:         "1418530010",
+			End:           "no valid unix ts",
+			ExpectedError: true,
+		},
+	}
+
+	for _, tt := range tc {
+		t.Run(tt.Name, func(t *testing.T) {
+			fakeAttrs := make([]string, 14)
+			fakeAttrs[idxStart] = tt.Start
+			fakeAttrs[idxEnd] = tt.End
+			start, end, err := timeBoundsFromAttrs(fakeAttrs)
+			if tt.ExpectedError {
+				assert.NotNil(t, err)
+			} else {
+				assert.Equal(t, tt.Start, fmt.Sprintf("%d", start.Unix()))
+				assert.Equal(t, tt.End, fmt.Sprintf("%d", end.Unix()))
+			}
+		})
+	}
+}
+
+func TestKeyFromAttrs(t *testing.T) {
+	logLine := "2 123456789010 eni-abc123de 172.31.16.139 172.31.16.21 20641 80 6 20 1000 1418530010 1418530070 ACCEPT OK"
+	expectedKey := "2 123456789010 eni-abc123de 172.31.16.139 172.31.16.21 - 80 6 - - - - ACCEPT OK"
+
+	assert.Equal(t, expectedKey, keyFromAttrs(strings.Split(logLine, " ")))
+}
+
+func TestReaderFromDigest(t *testing.T) {
+	digest := map[string]variableData{
+		"2 123456789010 eni-abc123de 172.31.16.139 172.31.16.21 - 80 6 - - - - ACCEPT OK": {bytes: 100, packets: 20},
+	}
+	start := time.Now().Add(-10 * time.Second)
+	end := time.Now()
+	expectedDigestLine := fmt.Sprintf("2 123456789010 eni-abc123de 172.31.16.139 172.31.16.21 0 80 6 20 100 %d %d ACCEPT OK\n", start.Unix(), end.Unix())
+
+	r, _ := readerFromDigest(digest, start, end)
+	line, _ := bufio.NewReader(r).ReadString('\n')
+	assert.Equal(t, expectedDigestLine, line)
 }

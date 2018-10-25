@@ -126,6 +126,10 @@ func (d *ReaderDigester) Digest() (io.ReadCloser, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		// We are already losing a lot of granularity in the digest, and we do not have any use cases so far for each
+		// edge between nodes to have its own start/end time. For now, we will use the overall bound of the digest
+		// for each log line.
 		if s.Before(start) || start.IsZero() {
 			start = s
 		}

@@ -62,6 +62,9 @@ type BucketFilter struct {
 // an element is found that passes the filter.
 func (it *BucketFilter) Iterate() bool {
 	var more = it.BucketIterator.Iterate()
+	if !more {
+		return false
+	}
 	var curr = it.BucketIterator.Current()
 	for more && !it.Filter.FilterLogFile(curr) {
 		more = it.BucketIterator.Iterate()

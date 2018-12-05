@@ -232,8 +232,9 @@ func TestPrefetchFileManagerGet(t *testing.T) {
 	var getErr = errors.New("")
 	var reader = NewMockReader(ctrl)
 	var fm = &PrefetchFileManager{
-		Ready: make(chan io.Reader, 1),
-		errs:  make(chan error, 1),
+		Ready:       make(chan io.Reader, 1),
+		errs:        make(chan error, 1),
+		initialized: 1,
 	}
 
 	// If only an error is enqueued then the error should be returned.

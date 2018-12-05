@@ -97,11 +97,16 @@ type PrefetchFileManager struct {
 	initialized int32
 }
 
+const bufferSize = 1024
+
 // Get a prefetched file. If prefetch is lagging behind then
 // this call will block until a file is available. If any
 // error was encountered since the last call to Get then it
 // is returned.
 func (f *PrefetchFileManager) Get() (io.Reader, error) {
+	if atomic.LoadInt32(&f.initialized) < 1 {
+		f.init()
+	}
 	select {
 	case e := <-f.errs:
 		return nil, e
@@ -153,7 +158,7 @@ func (f *PrefetchFileManager) init() {
 	f.downloader = s3manager.NewDownloaderWithClient(f.Queue, func(d *s3manager.Downloader) {
 		d.Concurrency = 1
 	})
-	f.errs = make(chan error, len(f.Ready))
+	f.errs = make(chan error, bufferSize)
 	atomic.AddInt32(&f.initialized, 1)
 }
 
@@ -200,7 +205,7 @@ func NewPrefetchPolicy(q s3iface.S3API, maxBytes int64, maxConcurrent int) func(
 			Lock:           sem,
 			MaxBytes:       maxBytes,
 			Queue:          q,
-			Ready:          make(chan io.Reader, 1024),
+			Ready:          make(chan io.Reader, bufferSize),
 			BucketIterator: iter,
 		}
 		go fm.Prefetch()

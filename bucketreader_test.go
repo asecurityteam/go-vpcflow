@@ -232,10 +232,11 @@ func TestPrefetchFileManagerGet(t *testing.T) {
 	var getErr = errors.New("")
 	var reader = NewMockReader(ctrl)
 	var fm = &PrefetchFileManager{
-		Ready:       make(chan io.Reader, 1),
-		errs:        make(chan error, 1),
-		initialized: 1,
+		Ready: make(chan io.Reader, 1),
+		errs:  make(chan error, 1),
 	}
+
+	fm.once.Do(func() {}) // trigger to bypass initialization
 
 	// If only an error is enqueued then the error should be returned.
 	fm.errs <- getErr
@@ -303,7 +304,7 @@ func TestPrefetchFileManagerPrefetch(t *testing.T) {
 		Ready:          ready,
 		Lock:           locker,
 	}
-	fm.init()
+	fm.once.Do(fm.init)
 
 	iter.EXPECT().Iterate().Return(true).Times(11)
 	iter.EXPECT().Current().Return(lf).Times(11)

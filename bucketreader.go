@@ -89,24 +89,20 @@ type PrefetchFileManager struct {
 	// size or be blocking.
 	Ready chan io.Reader
 
-	wg          sync.WaitGroup
-	prefetched  int64
-	errs        chan error
-	sizes       sync.Map
-	downloader  *s3manager.Downloader
-	initialized int32
+	wg         sync.WaitGroup
+	prefetched int64
+	errs       chan error
+	sizes      sync.Map
+	downloader *s3manager.Downloader
+	once       sync.Once
 }
-
-const bufferSize = 1024
 
 // Get a prefetched file. If prefetch is lagging behind then
 // this call will block until a file is available. If any
 // error was encountered since the last call to Get then it
 // is returned.
 func (f *PrefetchFileManager) Get() (io.Reader, error) {
-	if atomic.LoadInt32(&f.initialized) < 1 {
-		f.init()
-	}
+	f.once.Do(f.init)
 	select {
 	case e := <-f.errs:
 		return nil, e
@@ -158,16 +154,13 @@ func (f *PrefetchFileManager) init() {
 	f.downloader = s3manager.NewDownloaderWithClient(f.Queue, func(d *s3manager.Downloader) {
 		d.Concurrency = 1
 	})
-	f.errs = make(chan error, bufferSize)
-	atomic.AddInt32(&f.initialized, 1)
+	f.errs = make(chan error, cap(f.Ready))
 }
 
 // Prefetch starts a loop that consumes from the attached BucketIterator
 // and attempts to load that content before it is needed.
 func (f *PrefetchFileManager) Prefetch() {
-	if atomic.LoadInt32(&f.initialized) < 1 {
-		f.init()
-	}
+	f.once.Do(f.init)
 	for f.BucketIterator.Iterate() {
 		var curr = f.BucketIterator.Current()
 		// Files of zero size don't have content to download so we drop
@@ -205,7 +198,7 @@ func NewPrefetchPolicy(q s3iface.S3API, maxBytes int64, maxConcurrent int) func(
 			Lock:           sem,
 			MaxBytes:       maxBytes,
 			Queue:          q,
-			Ready:          make(chan io.Reader, bufferSize),
+			Ready:          make(chan io.Reader, 1024),
 			BucketIterator: iter,
 		}
 		go fm.Prefetch()

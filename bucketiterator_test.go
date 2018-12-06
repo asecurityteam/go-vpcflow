@@ -85,6 +85,8 @@ func TestIterateEmptyList(t *testing.T) {
 
 	var result = bi.Iterate()
 	assert.Equal(t, false, result)
+
+	_ = bi.Current() // shouldn't panic
 }
 
 func TestIterateWithOnePage(t *testing.T) {

@@ -236,6 +236,8 @@ func TestPrefetchFileManagerGet(t *testing.T) {
 		errs:  make(chan error, 1),
 	}
 
+	fm.once.Do(func() {}) // trigger to bypass initialization
+
 	// If only an error is enqueued then the error should be returned.
 	fm.errs <- getErr
 	var r, e = fm.Get()
@@ -302,7 +304,7 @@ func TestPrefetchFileManagerPrefetch(t *testing.T) {
 		Ready:          ready,
 		Lock:           locker,
 	}
-	fm.init()
+	fm.once.Do(fm.init)
 
 	iter.EXPECT().Iterate().Return(true).Times(11)
 	iter.EXPECT().Current().Return(lf).Times(11)

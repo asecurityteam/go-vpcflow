@@ -222,9 +222,7 @@ func TestBucketFilterReturnsIfFirstEmpty(t *testing.T) {
 		Filter:         filter,
 	}
 
-	var lf LogFile
 	wrapped.EXPECT().Iterate().Return(false)
-	wrapped.EXPECT().Current().Return(lf)
 	assert.Equal(t, false, iter.Iterate())
 }
 

@@ -59,11 +59,14 @@ func (iter *BucketStateIterator) Iterate() bool {
 		iter.isDone = !(result.IsTruncated != nil && *result.IsTruncated)
 	}
 	iter.currentListPosition++
-	return !iter.isDone || iter.currentListPosition <= len(iter.currentLogFileList)-1
+	return !iter.isExausted()
 }
 
 // Current gets the current value of the iterator.
 func (iter *BucketStateIterator) Current() LogFile {
+	if iter.isExausted() {
+		return LogFile{}
+	}
 	return iter.currentLogFileList[iter.currentListPosition]
 }
 
@@ -75,6 +78,10 @@ func (iter BucketStateIterator) Close() error {
 	iter.isDone = true
 	iter.nextContinuationToken = nil
 	return iter.error
+}
+
+func (iter BucketStateIterator) isExausted() bool {
+	return iter.isDone && iter.currentListPosition >= len(iter.currentLogFileList)
 }
 
 // parseLogFile takes in an s3.Object and converts it into and returns a vpcflow.LogFile.

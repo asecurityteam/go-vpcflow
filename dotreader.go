@@ -12,10 +12,18 @@ import (
 )
 
 var edgeLabels = map[int]string{
-	idxProtocol: "protocol",
-	idxPackets:  "packets",
-	idxBytes:    "bytes",
+	idxAccountID:   "accountID",
+	idxInterfaceID: "eniID",
+	idxSrcPort:     "srcPort",
+	idxDstPort:     "dstPort",
+	idxProtocol:    "protocol",
+	idxPackets:     "packets",
+	idxBytes:       "bytes",
+	idxStart:       "start",
+	idxEnd:         "end",
 }
+
+const namespace = "govpc_"
 
 // Converter provides an interface for converting the input data into a different format, made available in the output io.ReadCloser
 type Converter func(io.ReadCloser) (io.ReadCloser, error)
@@ -41,10 +49,14 @@ func DOTConverter(r io.ReadCloser) (io.ReadCloser, error) {
 			continue
 		}
 
-		src := createNode(attrs[idxSrcAddr], attrs[idxSrcPort], nodeStmts)
-		dst := createNode(attrs[idxDstAddr], attrs[idxDstPort], nodeStmts)
+		src := createNode(attrs[idxSrcAddr], nodeStmts)
+		dst := createNode(attrs[idxDstAddr], nodeStmts)
 		e := &ast.Edge{Directed: true, Vertex: dst}
+
+		// build up the edge label for rendering, and also add each of the annotations individually
+		// so that they may be parsed easily by downstream consumers
 		var prefix, label string
+		edgeAttrs := make([]*ast.Attr, 0, len(attrs))
 		for idx, attr := range attrs {
 			l, ok := edgeLabels[idx]
 			if !ok {
@@ -52,24 +64,27 @@ func DOTConverter(r io.ReadCloser) (io.ReadCloser, error) {
 			}
 			label = label + prefix + l + "=" + attr
 			prefix = "\\n"
+
+			edgeAttrs = append(edgeAttrs, &ast.Attr{
+				Key: namespace + l,
+				Val: fmt.Sprintf(`"%s"`, attr),
+			})
 		}
-		color := "green"
+		color := &ast.Attr{
+			Key: "color",
+			Val: "green",
+		}
 		if strings.ToLower(attrs[idxAction]) == "reject" {
-			color = "red"
+			color.Val = "red"
 		}
+		edgeAttrs = append(edgeAttrs, color, &ast.Attr{
+			Key: "label",
+			Val: fmt.Sprintf(`"%s"`, label),
+		})
 		g.Stmts = append(g.Stmts, &ast.EdgeStmt{
-			From: src,
-			To:   e,
-			Attrs: []*ast.Attr{
-				{
-					Key: "label",
-					Val: fmt.Sprintf(`"%s"`, label),
-				},
-				{
-					Key: "color",
-					Val: color,
-				},
-			},
+			From:  src,
+			To:    e,
+			Attrs: edgeAttrs,
 		})
 	}
 
@@ -78,18 +93,12 @@ func DOTConverter(r io.ReadCloser) (io.ReadCloser, error) {
 		nodes = append(nodes, v)
 	}
 	g.Stmts = append(g.Stmts, nodes...)
-
 	return ioutil.NopCloser(bytes.NewReader([]byte(g.String()))), nil
 }
 
 // createNode returns a node, and the corresponding node statement which describes the node
-func createNode(addr, port string, nodeStmts map[string]ast.Stmt) *ast.Node {
-	var p string
-	if port != "0" { // check for normalized ephemeral port
-		p = ":" + port
-	}
-	label := addr + p
-	nID := "n" + strings.Replace(label, ".", "", -1)
+func createNode(addr string, nodeStmts map[string]ast.Stmt) *ast.Node {
+	nID := "n" + strings.Replace(addr, ".", "", -1)
 	nID = strings.Replace(nID, ":", "", -1)
 	n := &ast.Node{ID: nID}
 	nodeStmts[n.ID] = &ast.NodeStmt{
@@ -97,7 +106,7 @@ func createNode(addr, port string, nodeStmts map[string]ast.Stmt) *ast.Node {
 		Attrs: []*ast.Attr{
 			{
 				Key: "label",
-				Val: fmt.Sprintf(`"%s"`, label),
+				Val: fmt.Sprintf(`"%s"`, addr),
 			},
 		},
 	}

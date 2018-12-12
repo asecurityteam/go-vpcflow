@@ -82,6 +82,13 @@
   pruneopts = "UT"
   revision = "04a2e542c03f1d053ab3e4d6e5abcd4b66e2be8e"
 
+[[projects]]
+  digest = "1:a2bfab4bf4324c6b55e559e5585ae267c961d009d8eb1ff7f60038b322907e75"
+  name = "gonum.org/v1/gonum"
+  packages = ["graph/formats/dot/ast"]
+  pruneopts = "UT"
+  revision = "572d9101fe4fdede494f26999a59d09229b7c11b"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
@@ -89,12 +96,12 @@
     "github.com/aws/aws-sdk-go/aws",
     "github.com/aws/aws-sdk-go/aws/endpoints",
     "github.com/aws/aws-sdk-go/aws/request",
-    "github.com/aws/aws-sdk-go/aws/session",
     "github.com/aws/aws-sdk-go/service/s3",
     "github.com/aws/aws-sdk-go/service/s3/s3iface",
     "github.com/aws/aws-sdk-go/service/s3/s3manager",
     "github.com/golang/mock/gomock",
     "github.com/stretchr/testify/assert",
+    "gonum.org/v1/gonum/graph/formats/dot/ast",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1

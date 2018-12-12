@@ -34,6 +34,10 @@
   version = "1.15.55"
 
 [[constraint]]
+  name = "gonum.org/v1/gonum"
+  revision = "572d9101fe4fdede494f26999a59d09229b7c11b"
+
+[[constraint]]
   name = "github.com/golang/mock"
   version = "1.1.1"
 

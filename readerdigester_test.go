@@ -47,7 +47,7 @@ func TestDigestSuccess(t *testing.T) {
 			Expected: expectedDigest{
 				"2 123456789010 eni-abc123de 172.31.16.139 172.31.16.21 0 80 6 20 1000 1418530010 1818530070 REJECT OK": true,
 				"2 123456789010 eni-abc123de 172.31.16.139 172.31.16.21 0 80 6 40 2000 1418530010 1818530070 ACCEPT OK": true,
-				"2 123456789010 eni-abc123de 172.31.16.21 172.31.16.139 0 80 6 40 2000 1418530010 1818530070 ACCEPT OK": true,
+				"2 123456789010 eni-abc123de 172.31.16.21 172.31.16.139 80 0 6 40 2000 1418530010 1818530070 ACCEPT OK": true,
 			},
 		},
 	}
@@ -161,15 +161,15 @@ func TestTimeBoundsFromAttrs(t *testing.T) {
 }
 
 func TestKeyFromAttrs(t *testing.T) {
-	logLine := "2 123456789010 eni-abc123de 172.31.16.139 172.31.16.21 20641 80 6 20 1000 1418530010 1418530070 ACCEPT OK"
-	expectedKey := "2 123456789010 eni-abc123de 172.31.16.139 172.31.16.21 - 80 6 - - - - ACCEPT OK"
+	logLine := "2 123456789010 eni-abc123de 172.31.16.139 172.31.16.21 0 80 6 20 1000 1418530010 1418530070 ACCEPT OK"
+	expectedKey := "2 123456789010 eni-abc123de 172.31.16.139 172.31.16.21 0 80 6 - - - - ACCEPT OK"
 
 	assert.Equal(t, expectedKey, keyFromAttrs(strings.Split(logLine, " ")))
 }
 
 func TestReaderFromDigest(t *testing.T) {
 	digest := map[string]variableData{
-		"2 123456789010 eni-abc123de 172.31.16.139 172.31.16.21 - 80 6 - - - - ACCEPT OK": {bytes: 100, packets: 20},
+		"2 123456789010 eni-abc123de 172.31.16.139 172.31.16.21 0 80 6 - - - - ACCEPT OK": {bytes: 100, packets: 20},
 	}
 	start := time.Now().Add(-10 * time.Second)
 	end := time.Now()

@@ -36,6 +36,7 @@ var keyFields = map[int]bool{
 	idxAccountID:   true,
 	idxInterfaceID: true,
 	idxSrcAddr:     true,
+	idxSrcPort:     true,
 	idxDstAddr:     true,
 	idxDstPort:     true,
 	idxProtocol:    true,
@@ -106,12 +107,12 @@ func (d *ReaderDigester) Digest() (io.ReadCloser, error) {
 		// meaning to it (e.g. 22, 80, 443, etc.).  We will use a less than heuristic to
 		// extract this value, assuming that all "meaningful" ports are less than the
 		// ephemeral port used.
-		// Going forward, we will store this "meaningful" port in the dstPort field, even if
-		// it's technically not the dstPort. We don't care if it's src/dst, we just want to know
-		// which port data was communicated over.
+		// We will normalize the ephemeral port to 0.
+		ephemeralPortIdx := idxSrcPort
 		if srcPort < dstPort {
-			attrs[idxDstPort] = fmt.Sprintf("%d", srcPort)
+			ephemeralPortIdx = idxDstPort
 		}
+		attrs[ephemeralPortIdx] = "0"
 
 		key := keyFromAttrs(attrs)
 		if _, ok := digest[key]; !ok {
@@ -185,8 +186,6 @@ func readerFromDigest(digest map[string]variableData, start, end time.Time) (io.
 				val = fmt.Sprintf("%d", start.Unix())
 			case idxEnd:
 				val = fmt.Sprintf("%d", end.Unix())
-			case idxSrcPort:
-				val = "0" // always set src port to 0. see earlier comment
 			default:
 				val = attr
 			}

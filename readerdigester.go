@@ -107,7 +107,7 @@ func (d *ReaderDigester) Digest() (io.ReadCloser, error) {
 		// meaning to it (e.g. 22, 80, 443, etc.).  We will use a less than heuristic to
 		// extract this value, assuming that all "meaningful" ports are less than the
 		// ephemeral port used.
-		// We will normalize the epemeral port to 0.
+		// We will normalize the ephemeral port to 0.
 		ephemeralPortIdx := idxSrcPort
 		if srcPort < dstPort {
 			ephemeralPortIdx = idxDstPort

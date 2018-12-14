@@ -51,7 +51,6 @@ func DOTConverter(r io.ReadCloser) (io.ReadCloser, error) {
 
 		src := createNode(attrs[idxSrcAddr], nodeStmts)
 		dst := createNode(attrs[idxDstAddr], nodeStmts)
-		e := &ast.Edge{Directed: true, Vertex: dst}
 
 		// build up the edge label for rendering, and also add each of the annotations individually
 		// so that they may be parsed easily by downstream consumers
@@ -83,7 +82,7 @@ func DOTConverter(r io.ReadCloser) (io.ReadCloser, error) {
 		})
 		g.Stmts = append(g.Stmts, &ast.EdgeStmt{
 			From:  src,
-			To:    e,
+			To:    &ast.Edge{Directed: true, Vertex: dst},
 			Attrs: edgeAttrs,
 		})
 	}

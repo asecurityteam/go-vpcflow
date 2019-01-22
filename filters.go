@@ -51,6 +51,17 @@ func (f LogFileRegionFilter) FilterLogFile(lf LogFile) bool {
 	return f.Region[lf.Region]
 }
 
+// LogFileAccountFilter reduces the set to only those from a
+// particular set of accounts.
+type LogFileAccountFilter struct {
+	Account map[string]bool
+}
+
+// FilterLogFile compares against the set of allowed accounts.
+func (f LogFileAccountFilter) FilterLogFile(lf LogFile) bool {
+	return f.Account[lf.Account]
+}
+
 // BucketFilter is a BucketIterator wrapper that
 // drops anything that fails the filter check.
 type BucketFilter struct {

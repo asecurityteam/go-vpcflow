@@ -193,6 +193,54 @@ func TestLogFileRegionFilter_FilterLogFile(t *testing.T) {
 	}
 }
 
+func TestLogFileAccountFilter_FilterLogFile(t *testing.T) {
+	type fields struct {
+		Account map[string]bool
+	}
+	type args struct {
+		lf LogFile
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   bool
+	}{
+		{
+			name: "empty set",
+			fields: fields{
+				Account: make(map[string]bool),
+			},
+			args: args{
+				lf: LogFile{Account: "123456789012"},
+			},
+			want: false,
+		},
+		{
+			name: "matching",
+			fields: fields{
+				Account: map[string]bool{
+					"123456789012": true,
+				},
+			},
+			args: args{
+				lf: LogFile{Account: "123456789012"},
+			},
+			want: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f := LogFileAccountFilter{
+				Account: tt.fields.Account,
+			}
+			if got := f.FilterLogFile(tt.args.lf); got != tt.want {
+				t.Errorf("LogFileAccountFilter.FilterLogFile() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestBucketFilterReturnsIfFirstPasses(t *testing.T) {
 	var ctrl = gomock.NewController(t)
 	defer ctrl.Finish()

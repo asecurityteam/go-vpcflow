@@ -14,6 +14,7 @@ import (
 // BucketStateIterator holds the current state of the iterator.
 type BucketStateIterator struct {
 	Bucket                string
+	Prefix                string
 	nextContinuationToken *string
 	currentListPosition   int
 	currentLogFileList    []LogFile
@@ -37,6 +38,7 @@ func (iter *BucketStateIterator) Iterate() bool {
 		input := &s3.ListObjectsV2Input{
 			Bucket:            aws.String(iter.Bucket),
 			ContinuationToken: iter.nextContinuationToken,
+			Prefix:            aws.String(iter.Prefix),
 		}
 		result, err := iter.Queue.ListObjectsV2(input)
 		if err != nil {

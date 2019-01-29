@@ -35,6 +35,17 @@ err := bucketIter.Close()
 // check error
 ```
 
+To focus on a subset of data in your bucket, you can apply a prefix fileter to the iterator. Only objects with this prefix will be returned.
+By default, all objects in the bucket will be iterated over.
+
+```
+bucketIter := &vpcflow.BucketStateIterator{
+	Bucket: bucket,
+	Queue:  client,
+	Prefix: "AWSLogs/123456789123/vpcflowlogs/us-west-2/2018/10/15",
+}
+```
+
 ### Filtering bucket objects ###
 
 It's probable that not all object in the S3 bucket will be of interest. 

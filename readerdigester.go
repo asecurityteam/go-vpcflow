@@ -158,16 +158,22 @@ func timeBoundsFromAttrs(attrs []string) (time.Time, time.Time, error) {
 
 // key gets generated from stable values which are not likely to change as much
 func keyFromAttrs(attrs []string) string {
-	var key, prefix string
+	length := 0
+	for offset := range attrs {
+		length = length + len(attrs[offset])
+	}
+	key := bytes.NewBuffer(make([]byte, 0, length+len(attrs)))
+	var prefix string
 	for idx, attr := range attrs {
 		val := strings.TrimSpace(attr)
 		if !keyFields[idx] {
 			val = "-"
 		}
-		key = key + prefix + val
+		_, _ = key.WriteString(prefix)
+		_, _ = key.WriteString(val)
 		prefix = " "
 	}
-	return key
+	return key.String()
 }
 
 func readerFromDigest(digest map[string]variableData, start, end time.Time) (io.ReadCloser, error) {

@@ -179,3 +179,15 @@ func TestReaderFromDigest(t *testing.T) {
 	line, _ := bufio.NewReader(r).ReadString('\n')
 	assert.Equal(t, expectedDigestLine, line)
 }
+
+var benchKeyFromAttrs string
+
+func BenchmarkKeyFromAttrs(b *testing.B) {
+	attrs := strings.Split("2 123456789010 eni-abc123de 172.31.16.139 172.31.16.21 NaN 80 6 20 1000 1418530010 1418530070 ACCEPT OK", "")
+	var key string
+	b.ResetTimer()
+	for n := 0; n < b.N; n = n + 1 {
+		key = keyFromAttrs(attrs)
+	}
+	benchKeyFromAttrs = key
+}

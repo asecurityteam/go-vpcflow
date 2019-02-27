@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -492,4 +493,19 @@ func TestCloseWithErrorParsingLogFileName(t *testing.T) {
 	var errorString = "error parsing logfile name. timestamp could not be parsed from log file name. parsing time \"2018notatimeT0030Z\": month out of range"
 	assert.Equal(t, false, bi.Iterate())
 	assert.Equal(t, errors.New(errorString), bi.Close())
+}
+
+func BenchmarkParseLogFile(b *testing.B) {
+	obj := &s3.Object{
+		Key:  aws.String("AWSLogs/123456789012/vpcflowlogs/us-west-2/2018/10/17/123456789012_vpcflowlogs_us-west-2_fl-00123456789abcdef_20181017T0030Z_0a1b2c3d.log.gz"),
+		Size: aws.Int64(100),
+	}
+	bucket := "vpcflow"
+	b.ResetTimer()
+	for n := 0; n < b.N; n = n + 1 {
+		_, err := parseLogFile(obj, bucket)
+		if err != nil {
+			b.Fatal(err.Error())
+		}
+	}
 }

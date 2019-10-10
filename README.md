@@ -1,6 +1,8 @@
 <a id="markdown-go-vpc---tools-for-working-with-aws-vpc-flow-logs" name="go-vpc---tools-for-working-with-aws-vpc-flow-logs"></a>
 # go-vpc - Tools for working with AWS VPC Flow Logs #
 [![GoDoc](https://godoc.org/github.com/asecurityteam/go-vpcflow?status.svg)](https://godoc.org/github.com/asecurityteam/go-vpcflow)
+[![Build Status](https://travis-ci.com/asecurityteam/go-vpcflow.png?branch=master)](https://travis-ci.com/asecurityteam/go-vpcflow)
+[![codecov.io](https://codecov.io/github/asecurityteam/go-vpcflow/coverage.svg?branch=master)](https://codecov.io/github/asecurityteam/go-vpcflow?branch=master)
 
 *Status: Incubation*
 
